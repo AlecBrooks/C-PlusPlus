@@ -12,7 +12,6 @@ int main(){
     cout << endl << "your name is " << name << "!";
 
     cin.ignore();
-    //cin.get();
     
     return 0;
 }
