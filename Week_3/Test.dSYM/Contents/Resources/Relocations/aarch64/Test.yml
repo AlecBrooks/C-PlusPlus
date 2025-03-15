@@ -1,5 +1,0 @@
----
-triple:          'arm64-apple-darwin'
-binary-path:     '/Users/alecbrooks/Documents/GitHub/CS-135/Week_3/Test'
-relocations:     []
-...
