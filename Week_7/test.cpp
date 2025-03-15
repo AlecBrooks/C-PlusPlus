@@ -4,8 +4,10 @@ using namespace std;
 
 int main(){
 
-
-	cout << "hello world" << endl;
+	int x;
+	cout << "Enter an Int: ";
+	cin >> x;
+	cout << "you typed: " << x << endl;
 
 	return 0;
 
