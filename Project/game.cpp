@@ -79,7 +79,7 @@ class Hero{
 	vector<Item> inv;
 	Room* location;
 	Hero(string name, int maxHP, int hp, int st, int dex, Weapon* weapon, Room* location)
-    : name(name), maxHP(maxHP), hp(hp), st(st), dex(dex), armorClass(10 + dex), weapon(weapon), location(location){}
+    : name(name), maxHP(maxHP), hp(hp), st(st), dex(dex), armorClass(8 + dex), weapon(weapon), location(location){}
 	int attackRoll(int targetAC){
 		int roll = runRNG(1,20);
 		int bonus = dex;
@@ -172,7 +172,7 @@ class Monster{
 	string desc;
 	string deathDesc;
 	Monster(string name, int hp, int st, int dex, Weapon* weapon, string desc, string deathDesc)
-		: name(name), hp(hp), st(st), dex(dex), armorClass(10+dex), weapon(weapon), desc(desc), deathDesc(deathDesc){}
+		: name(name), hp(hp), st(st), dex(dex), armorClass(8+dex), weapon(weapon), desc(desc), deathDesc(deathDesc){}
 	int attackRoll(int targetAC){
 		int roll = runRNG(1,20);
 		int bonus = dex;
@@ -205,13 +205,26 @@ class Monster{
 	};
 };
 
+class Door{
+	public:
+	string name;
+	bool locked;
+	bool visable;
+	vector<Room>connection;
+	Door(string name, bool locked, bool visable)
+	: name(name), locked(locked), visable(visable) {}
+};
+
 //create rooms (Class)
 class Room{
 	public:
 	string name;
+	vector<Item>Contents;
+	vector<Door>Doors;
+	vector<Monster>enemys;
 
 	Room(string name)
-	: name(name) {}
+		: name(name) {}
 };
 
 //main loop and init
