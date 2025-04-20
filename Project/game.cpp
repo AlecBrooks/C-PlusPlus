@@ -25,7 +25,7 @@ class Monster;
 class Room;
 int runRNG(int min, int max);
 void clearScreen();
-void runRoom();
+void runRoom(Room*, Hero&);
 void CombatHeader(Hero&);
 void Header(Hero&);
 void runCombat(Hero&, Monster&);
@@ -78,8 +78,10 @@ class Hero{
 	Weapon* weapon;
 	vector<Item> inv;
 	Room* location;
+
 	Hero(string name, int maxHP, int hp, int st, int dex, Weapon* weapon, Room* location)
-    : name(name), maxHP(maxHP), hp(hp), st(st), dex(dex), armorClass(8 + dex), weapon(weapon), location(location){}
+    	: name(name), maxHP(maxHP), hp(hp), st(st), dex(dex), armorClass(8 + dex), weapon(weapon), location(location) {}
+	
 	int attackRoll(int targetAC){
 		int roll = runRNG(1,20);
 		int bonus = dex;
@@ -125,7 +127,7 @@ class Hero{
 	void addItem(Item item) {
 		if(item.canCarry == true){
     		inv.push_back(item);
-    		cout << name << " picked up a: " << CYAN << item.name << RESET << endl;
+    		cout << CYAN << name << RESET << " picked up a: " << MAGENTA << item.name << RESET << endl;
     	} else {
     		cout << "You're kidding right?" << endl;
     	};
@@ -219,19 +221,31 @@ class Door{
 class Room{
 	public:
 	string name;
+	string discription;
 	vector<Item>Contents;
 	vector<Door>Doors;
 	vector<Monster>enemys;
 
-	Room(string name)
-		: name(name) {}
+	Room(string name, string discription)
+		: name(name), discription(discription) {}
+
+	void addContents(Item item) {
+		Contents.push_back(item);
+	};
+
+	void removeContents(Item item) {
+    	for (vector<Item>::iterator it = Contents.begin(); it != Contents.end(); ++it) {
+        	if (it->name == item.name) {
+            	Contents.erase(it);
+            	break;
+        	};
+    	};
+	};
 };
 
 //main loop and init
 int main(){
 	//Create Objects
-	//rooms
-	Room testRoom("testRoom");
 	//items
 	Item hpot("health potion", "Can be used to heal 5 - 10 health.",true,true);
 	Item ppot("poison potion", "Ingestion will cause 5 - 10 damage.",true,true);
@@ -246,13 +260,21 @@ int main(){
 	//monsters
 	Monster goblin("Goblin", 7, 0, 2, &scimitar, "A small, green creature with bloodstained claws and a cruel grin.", "The goblin screeches as your blow lands true. Blood sprays from its mouth as it stumbles backward, eyes wide in shock. With a final gasp, it crumples to the ground, twitching once before going still.");
 	Monster skeleton("Skeleton", 13, 0, 3, &mace, "A clattering mass of old bones bound by dark magic. Its hollow eye sockets glow faintly with unnatural light, and it grips a rusted mace with unsettling steadiness.", "The final blow shatters the skeleton’s spine. Bones fly in all directions as the magical force holding it together vanishes. With a final clatter, the skull rolls to a stop, grinning forever in death.");
+
+	//rooms
+	Room entrance("testRoom", "a stone chamber that breathes with ancient stillness, as if it has waited centuries just for you. Cold air clings to your skin, thick with the scent of damp earth and time-forgotten decay. The walls, rough-hewn and crooked, bear the scars of crude chisels — their uneven surface veined with moss and thin trickles of water that glisten like threads of silver in the dim light. Overhead, the jagged stone ceiling sags low, cracked and warped by age and moisture. Somewhere deeper in the dark, the echo of a slow, deliberate drip lands like a heartbeat — steady, unyielding, alive. It is not a welcoming place. It does not care for your presence. But it remembers others.");
+	entrance.addContents(BoS);
+	entrance.addContents(hpot);
+
 	//player
-	Hero player("Aragorn", 30, 30, 2, 2, &longsword, &testRoom);
+	Hero player("Aragorn", 30, 30, 2, 2, &longsword, &entrance);
 	player.addItem(hpot);
+
 	clearScreen();
-	runCombat(player,goblin);
-	clearScreen();
-	runCombat(player,skeleton);
+	// Main Game Loop
+	while (player.hp > 0){
+	runRoom(player.location,player);
+	}
 	return 0;
 };
 
@@ -260,7 +282,86 @@ int runRNG(int min, int max){
 	uniform_int_distribution<int> dist(min, max);
     return dist(rng);
 };
-void runRoom(){
+
+void runRoom(Room* here, Hero& player){
+	clearScreen();
+	cout << "you enter the room and see ";
+	cout << here->discription;
+	cout << " throughout the room you see";
+	
+	for (int i = 0; i < here->Contents.size(); ++i) {
+    	if(i+1 == here->Contents.size() && i > 0){
+    		cout << " and a " << MAGENTA << here->Contents[i].name << RESET << ".";
+    	} else {
+    	cout << " a " << MAGENTA << here->Contents[i].name << RESET << ",";
+    	};
+	};
+	cout << endl << endl;
+	player.showStats(); 
+	cout << endl << endl;
+	cout << endl << "What would you like to do?" << endl << endl;
+    cout << "> go [direction] | look [item] | take [item] | use [item name] | use [item] on [item]" << endl << endl;
+    cout << "=====================================================================================" << endl << endl;
+	string action;
+	getline(cin,action);
+
+	if (action.find("look ") == 0) {
+    	string itemName = action.substr(5);
+    	bool found = false;
+    	for (int i = 0; i < here->Contents.size(); ++i) {
+        	if (here->Contents[i].name == itemName) {
+            	cout << endl << here->Contents[i].desc<< endl << endl;
+            	found = true;
+       		}
+    	}
+    	if(found == false){
+    		cout << endl << "You don't see a '" << itemName << "' here." << endl << endl;
+    	};
+	}else if(action.find("go ") == 0){
+		cout << "go to a plcace";
+	}else if (action.find("use ") == 0 && action.find(" on ") != string::npos){
+		cout << "use an item on an item";
+	}else if(action.find("use ") == 0){
+		string itemName = action.substr(4);
+    	player.useItem(itemName);
+    }else if(action.find("take ") == 0){
+    	string itemName = action.substr(5);
+    	bool found = false;
+    	for (int i = 0; i < here->Contents.size(); ++i) {
+        	if (here->Contents[i].name == itemName) {
+            	found = true;
+            	if(here->Contents[i].canCarry == true){
+            		cout << endl;
+            		player.addItem(here->Contents[i]);
+            		here->removeContents(here->Contents[i]);
+            		cout << endl;
+            	}else{
+            		cout << endl << "are you out of your mind?";
+            	};
+       		};
+    	};
+    	if(found == false){
+    		cout << endl << "You don't see a '" << itemName << "' here." << endl << endl;
+    	};
+    }else{
+		cout << endl << "huh?";
+	};
+	cin.get();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 };
 void clearScreen(){
