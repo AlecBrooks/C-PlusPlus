@@ -27,11 +27,11 @@ int runRNG(int min, int max);
 void clearScreen();
 void runRoom(Room*, Hero&);
 void CombatHeader(Hero&);
-void Header(Hero&);
+void Header(Hero&, Room*);
 void runCombat(Hero&, Monster&);
 void createObjects();
 void useItemLogic(Hero&, Item&);
-
+void useItemOnItemLogic(Item& item1, Item& item2);
 
 //Classes====================================
 
@@ -78,6 +78,7 @@ class Hero{
 	Weapon* weapon;
 	vector<Item> inv;
 	Room* location;
+	Room* lastLocation;
 
 	Hero(string name, int maxHP, int hp, int st, int dex, Weapon* weapon, Room* location)
     	: name(name), maxHP(maxHP), hp(hp), st(st), dex(dex), armorClass(8 + dex), weapon(weapon), location(location) {}
@@ -160,6 +161,10 @@ class Hero{
 	bool isAlive() {
 		return hp > 0;
 	};
+	void move(Room* moveTo){
+		this->lastLocation = this->location;
+		this->location = moveTo;
+	}
 };
 
 //create Monsters (Class)
@@ -206,28 +211,30 @@ class Monster{
 		};
 	};
 };
-
-class Door{
-	public:
+class Door {
+public:
 	string name;
 	bool locked;
-	bool visable;
-	vector<Room>connection;
-	Door(string name, bool locked, bool visable)
-	: name(name), locked(locked), visable(visable) {}
+	bool visible;
+	int ID;
+	Room* connectsTo;
+	Door() : name(""), locked(false), visible(true), ID(999), connectsTo(nullptr) {}
+	Door(string name, bool locked, bool visible, int ID, Room* connectsTo = nullptr)
+		: name(name), locked(locked), visible(visible), connectsTo(connectsTo) {}
 };
 
 //create rooms (Class)
-class Room{
+class Room {
 	public:
 	string name;
-	string discription;
-	vector<Item>Contents;
-	vector<Door>Doors;
-	vector<Monster>enemys;
+	string desc;
+	vector<Item> Contents;
+	vector<Monster> enemys;
 
-	Room(string name, string discription)
-		: name(name), discription(discription) {}
+	Door north, south, east, west;
+
+	Room(string name, string desc)
+		: name(name), desc(desc) {}
 
 	void addContents(Item item) {
 		Contents.push_back(item);
@@ -245,33 +252,46 @@ class Room{
 
 //main loop and init
 int main(){
+	
 	//Create Objects
+	
 	//items
 	Item hpot("health potion", "Can be used to heal 5 - 10 health.",true,true);
 	Item ppot("poison potion", "Ingestion will cause 5 - 10 damage.",true,true);
 	Item map("map", "Map of the Area",false,true);
 	Item BoS("boulder of sisyphus", "A fancy way of saying a big ass rock.",false,false);
+	Item key("key", "an ornate silver key", true, true);
+	
 	//weapons
 	Weapon battleaxe("Battleaxe",1,8);
 	Weapon mace("Mace",1,6);
 	Weapon dagger("Dagger",1,4);
 	Weapon longsword("Longsword",1,10);
 	Weapon scimitar("Scimitar",1,6);
+	
 	//monsters
 	Monster goblin("Goblin", 7, 0, 2, &scimitar, "A small, green creature with bloodstained claws and a cruel grin.", "The goblin screeches as your blow lands true. Blood sprays from its mouth as it stumbles backward, eyes wide in shock. With a final gasp, it crumples to the ground, twitching once before going still.");
 	Monster skeleton("Skeleton", 13, 0, 3, &mace, "A clattering mass of old bones bound by dark magic. Its hollow eye sockets glow faintly with unnatural light, and it grips a rusted mace with unsettling steadiness.", "The final blow shatters the skeleton’s spine. Bones fly in all directions as the magical force holding it together vanishes. With a final clatter, the skull rolls to a stop, grinning forever in death.");
 
 	//rooms
-	Room entrance("testRoom", "a stone chamber that breathes with ancient stillness, as if it has waited centuries just for you. Cold air clings to your skin, thick with the scent of damp earth and time-forgotten decay. The walls, rough-hewn and crooked, bear the scars of crude chisels — their uneven surface veined with moss and thin trickles of water that glisten like threads of silver in the dim light. Overhead, the jagged stone ceiling sags low, cracked and warped by age and moisture. Somewhere deeper in the dark, the echo of a slow, deliberate drip lands like a heartbeat — steady, unyielding, alive. It is not a welcoming place. It does not care for your presence. But it remembers others.");
-	entrance.addContents(BoS);
-	entrance.addContents(hpot);
+	Room room1("testRoom", "a stone chamber that breathes with ancient stillness, as if it has waited centuries just for you. Cold air clings to your skin, thick with the scent of damp earth and time-forgotten decay. The walls, rough-hewn and crooked, bear the scars of crude chisels — their uneven surface veined with moss and thin trickles of water that glisten like threads of silver in the dim light. Overhead, the jagged stone ceiling sags low, cracked and warped by age and moisture. Somewhere deeper in the dark, the echo of a slow, deliberate drip lands like a heartbeat — steady, unyielding, alive. It is not a welcoming place. It does not care for your presence. But it remembers others.");
+	room1.addContents(BoS);
+	room1.addContents(hpot);
+	Room room2("testRoom2","A beautiful little room");
+	room2.addContents(key);
+	Room room3("Locked room", "Tada! you unlocked this room");
+
+	//doors
+	room1.north = Door("Wooden Door", false, true, 1, &room2);
+	room2.south = Door("Wooden Door", false, true, 2, &room1);
+	room2.east = Door("Wooden Door", true, true, 3, &room3);
 
 	//player
-	Hero player("Aragorn", 30, 30, 2, 2, &longsword, &entrance);
+	Hero player("Aragorn", 30, 30, 2, 2, &longsword, &room1);
 	player.addItem(hpot);
 
+	// Main Game Loop #################################################################
 	clearScreen();
-	// Main Game Loop
 	while (player.hp > 0){
 	runRoom(player.location,player);
 	}
@@ -285,19 +305,32 @@ int runRNG(int min, int max){
 
 void runRoom(Room* here, Hero& player){
 	clearScreen();
+	Header(player, here);
 	cout << "you enter the room and see ";
-	cout << here->discription;
+	cout << here->desc;
 	cout << " throughout the room you see";
-	
-	for (int i = 0; i < here->Contents.size(); ++i) {
-    	if(i+1 == here->Contents.size() && i > 0){
-    		cout << " and a " << MAGENTA << here->Contents[i].name << RESET << ".";
-    	} else {
-    	cout << " a " << MAGENTA << here->Contents[i].name << RESET << ",";
-    	};
+	if(!here->Contents.empty()){
+		for (int i = 0; i < here->Contents.size(); ++i) {
+    		if(i+1 == here->Contents.size() && i > 0){
+    			cout << " and a " << MAGENTA << here->Contents[i].name << RESET << ".";
+    		} else {
+    		cout << " a " << MAGENTA << here->Contents[i].name << RESET << ",";
+    		};
+		};
 	};
-	cout << endl << endl;
-	player.showStats(); 
+	cout << endl;
+	if(!(here->north.connectsTo == nullptr)){
+		cout << endl << "along the " << MAGENTA << "north" << RESET << " wall you see a "<< here->north.name;
+	};
+	if(!(here->south.connectsTo == nullptr)){
+		cout << endl << "along the " << MAGENTA << "south" << RESET << " wall you see a "<< here->south.name;
+	};
+	if(!(here->east.connectsTo == nullptr)){
+		cout << endl << "along the " << MAGENTA << "east" << RESET << " wall you see a "<< here->east.name;
+	};
+	if(!(here->west.connectsTo == nullptr)){
+		cout << endl << "along the " << MAGENTA << "west" << RESET << " wall you see a "<< here->west.name;
+	};
 	cout << endl << endl;
 	cout << endl << "What would you like to do?" << endl << endl;
     cout << "> go [direction] | look [item] | take [item] | use [item name] | use [item] on [item]" << endl << endl;
@@ -305,22 +338,105 @@ void runRoom(Room* here, Hero& player){
 	string action;
 	getline(cin,action);
 
-	if (action.find("look ") == 0) {
+	if (action.find("look ") == 0) {  //Look at an item
     	string itemName = action.substr(5);
     	bool found = false;
     	for (int i = 0; i < here->Contents.size(); ++i) {
         	if (here->Contents[i].name == itemName) {
             	cout << endl << here->Contents[i].desc<< endl << endl;
             	found = true;
-       		}
-    	}
+       		};
+    	};
     	if(found == false){
     		cout << endl << "You don't see a '" << itemName << "' here." << endl << endl;
     	};
-	}else if(action.find("go ") == 0){
-		cout << "go to a plcace";
-	}else if (action.find("use ") == 0 && action.find(" on ") != string::npos){
-		cout << "use an item on an item";
+	}else if(action.find("go ") == 0){  //move to a direction
+		string targetRoom = action.substr(3);
+		if (targetRoom == "north") {
+			if (here->north.connectsTo == nullptr) {
+				cout << endl << "You bonk your head against the wall." << endl << endl;
+			}else{
+				if (here->north.locked) {
+					cout << endl << "The door appears to be locked." << endl << endl;
+				}else{
+				player.move(here->north.connectsTo);
+				cout << endl << "You move through the north door." << endl << endl;
+			};
+		};
+		}else if (targetRoom == "south") {
+			if (here->south.connectsTo == nullptr) {
+				cout << endl << "You bonk your head against the wall." << endl << endl;
+			}else{
+				if (here->south.locked) {
+					cout << endl << "The door appears to be locked." << endl << endl;
+				}else{
+					player.move(here->south.connectsTo);
+					cout << endl << "You move through the south door." << endl << endl;
+				};
+			};
+		}else if (targetRoom == "east") {
+			if (here->east.connectsTo == nullptr) {
+				cout << endl << "You bonk your head against the wall." << endl << endl;
+			}else{
+				if (here->east.locked) {
+					cout << endl << "The door appears to be locked." << endl << endl;
+				}else{
+					player.move(here->east.connectsTo);
+					cout << endl << "You move through the east door." << endl << endl;
+				};
+			};
+		}else if (targetRoom == "west") {
+			if (here->west.connectsTo == nullptr) {
+				cout << endl << "You bonk your head against the wall." << endl << endl;
+			}else{
+				if (here->west.locked) {
+					cout << endl << "The door appears to be locked." << endl << endl;
+				}else{
+					player.move(here->west.connectsTo);
+					cout << endl << "You move through the west door." << endl << endl;
+					};
+				};
+		}else{
+			cout << "That's not a valid direction." << endl;
+		}
+	}else if (action.find("use ") == 0 && action.find(" on ") != string::npos){ //Use item on item
+		int onPos = action.find(" on ");
+		string item1 = action.substr(4, onPos - 4);
+		string item2 = action.substr(onPos + 4);
+		bool found1 = false;
+		string found1In;
+		bool found2 = false;
+		string found2In;
+    	for (int i = 0; i < here->Contents.size(); ++i) {
+        	if (here->Contents[i].name == item1) {
+            	found1 = true;
+            	found1In = "room";
+       		};
+       	};
+       	for (int i = 0; i < player.inv.size(); ++i) {
+			if (player.inv[i].name == item1) {
+            	found1 = true;
+            	found1In = "inv";
+       		};
+		};
+		for (int i = 0; i < here->Contents.size(); ++i) {
+        	if (here->Contents[i].name == item2) {
+            	found2 = true;
+            	found2In = "room";
+       		};
+       	};
+       	for (int i = 0; i < player.inv.size(); ++i) {
+			if (player.inv[i].name == item2) {
+            	found2 = true;
+            	found2In = "inv";
+       		};
+		};
+	if(found1 == true && found2 == true){
+		cout << "both items found" << endl;
+	}else{
+		cout << "you dont have acess to those items" << endl;
+	};
+
 	}else if(action.find("use ") == 0){
 		string itemName = action.substr(4);
     	player.useItem(itemName);
@@ -347,31 +463,15 @@ void runRoom(Room* here, Hero& player){
 		cout << endl << "huh?";
 	};
 	cin.get();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 };
 void clearScreen(){
 	cout << "\033[2J\033[1;1H"; 
 };
-void Header(Hero& player, Room& ThisRoom) {
-    cout << "===== Round " << ThisRoom.name << " =====" << endl << endl;
+void Header(Hero& player, Room* ThisRoom) {
+    cout << "===================================== " << ThisRoom->name << " =====================================" << endl << endl;
     cout << BLUE << "-- Player --" << RESET << endl;
     player.showStats();
-    cout << "=====================" << endl << endl;
+    cout << endl << "=====================================================================================" << endl << endl;
 };
 void CombatHeader(Hero& player, Monster& enemy, int combatRound) {
     cout << "===== Round " << combatRound << " =====" << endl << endl;
@@ -446,6 +546,15 @@ void useItemLogic(Hero& player, Item& item){
     };
 };
 
+void useItemOnItemLogic(Item& item1, Item& item2){
 
 
+};
+void useItemOnItemLogic(Item& item, Door& door){
 
+
+};
+void useItemOnItemLogic(Door& door, Item& item){
+
+
+};
