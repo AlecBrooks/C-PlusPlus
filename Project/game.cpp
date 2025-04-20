@@ -247,7 +247,7 @@ int main(){
 	Monster goblin("Goblin", 7, 0, 2, &scimitar, "A small, green creature with bloodstained claws and a cruel grin.", "The goblin screeches as your blow lands true. Blood sprays from its mouth as it stumbles backward, eyes wide in shock. With a final gasp, it crumples to the ground, twitching once before going still.");
 	Monster skeleton("Skeleton", 13, 0, 3, &mace, "A clattering mass of old bones bound by dark magic. Its hollow eye sockets glow faintly with unnatural light, and it grips a rusted mace with unsettling steadiness.", "The final blow shatters the skeleton’s spine. Bones fly in all directions as the magical force holding it together vanishes. With a final clatter, the skull rolls to a stop, grinning forever in death.");
 	//player
-	Hero player("Aragorn", 30, 30, 3, 3, &longsword, &testRoom);
+	Hero player("Aragorn", 30, 30, 2, 2, &longsword, &testRoom);
 	player.addItem(hpot);
 	clearScreen();
 	runCombat(player,goblin);
