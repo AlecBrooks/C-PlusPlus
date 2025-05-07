@@ -1,0 +1,9 @@
+Sanctum of the Amber Eye is a terminal based adventure inspired by the MUDs I played as a kid. Players explore the world by typing custom commands and naming specific interactable objects, which fall into four categories: doors, items, enemies, and NPCs. Each category is highlighted in its own color to help users quickly spot them in descriptions and dialogue.
+
+Modularity was a core design goal: I wanted to try and build a flexible “game engine” that could be retrofitted to build many scenarios. In practice, complex class interactions forced the project to only be partially modular, but most of the core logic (input parsing, screen clearing, menu rendering, etc.) can be reused. With more time, I plan to externalize scenario data so different game files could be loaded without recompilation.
+
+The code is heavily object oriented. Everything from Rooms, Player, NPC, Monster, Items, and Doors is its own class, and the game loop relies on utility functions like clearScreen() and Enter2Continue(message, color) (which prints a colored prompt and waits for Enter) to keep updates smooth and consistent. Menus (main, combat, room) are all drawn by dedicated functions, ensuring a uniform look and easy expansion.
+
+Combat borrows loosely from D&D 5e: both player and monsters have HP, Strength (ST), Dexterity (DEX), and Armor Class (AC = 8 + DEX). Attacks roll are random 1–20 rolls + DEX against the target’s AC; if successful, damage is rolled by the weapon class (e.g. 1–10 for a longsword) and ST is added. Items include keys, health potions, and the game’s special McGuffin—holy water—which each define their own use behavior, leaving strategic choice up to the player.
+
+Overall, Sanctum of the Amber Eye is a fun MUD style game with class based, color coded feedback, and a familiar and simple combat system.
